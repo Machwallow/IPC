@@ -1,6 +1,12 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.net.Socket;
+
 public class ClientPOP3 {
 
-    public void bite(){
-        System.out.println("éziuegizuegnsegi");
-    }
+    private BufferedWriter bw;
+    private BufferedReader br;
+    private Socket sClient;
+
+
 }
