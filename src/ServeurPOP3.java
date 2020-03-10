@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class ServeurPOP3 {
 
@@ -55,6 +56,7 @@ public class ServeurPOP3 {
         }
 
         public static void main(String args[]){
+
             ServeurPOP3 s=new ServeurPOP3(8000);
             s.start();
         }

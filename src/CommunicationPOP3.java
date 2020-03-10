@@ -1,28 +1,33 @@
 import java.io.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Parameter;
+import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class CommunicationPOP3 implements Runnable {
     private Socket sComm;
-    private BufferedReader br;
+    private BufferedInputStream bis;
     private BufferedWriter bw;
     private boolean connected = false;
     private String timestamp;
+    private User currentUser;
+    private boolean isConnected = false;
+
 
     public CommunicationPOP3(Socket s){
         this.sComm =s;
         System.out.println("new client");
         System.out.println(s.getInetAddress());
 
+        //envoie +OK POP3 Server Ready
+
     }
 
-    public void response(BufferedReader br){
+    public void response(){
         try{
-            if(br.ready()) {
-                readBuffer(br);
-            }
-        }catch(IOException e){
+            readBuffer();
+        }catch(Exception e){
             System.out.println(e.getMessage());
         }
     }
@@ -69,30 +74,96 @@ public class CommunicationPOP3 implements Runnable {
         }
     }
 */
-    public boolean readBuffer(BufferedReader br){
+    public boolean readBuffer(){
         ArrayList<ArrayList<String>> tab=new ArrayList<>();
         ArrayList<String> contenu = new ArrayList<>();
         try{
             System.out.println("----------------");
-            String commande = br.readLine();
 
-            String[] parametres = commande.split(" ");
+            String response = "";
+            int stream;
+            byte[] b = new byte[4096];
+            stream = bis.read(b);
+            response = new String(b, 0, stream);
+
+            System.out.println(response);
+
+            String[] parametres = response.split(" ");
 
             switch (parametres[0]) {
 
                 case "APOP" : {
                     //TODO : Handle connection
-                    System.out.println("apop recu");
+
+                    if(!isConnected){
+                        currentUser = UserDAO.getUser(parametres[1], parametres[2]);
+                        if(currentUser.getLogin() == null){
+
+                            bw.write("-ERR wrong login or password");
+                            bw.flush();
+
+                        } else {
+
+                            int countMails = MailDAO.countMails(currentUser.getIdUser());
+                            bw.write("+OK maildrop has " + countMails + " message(s)");
+                            bw.flush();
+                            isConnected = true;
+                        }
+
+                    }
+
                     break;
                 }
 
                 case "STAT" : {
-                    //TODO : Handle STAT
+
+                    if(isConnected){
+
+                        ArrayList<Mail> mails = MailDAO.getMails(currentUser.getIdUser());
+                        int nbBytes = 0;
+
+                        for(Mail m : mails){
+                            nbBytes += (m.getCorps().getBytes("UTF-8").length + m.getDate().toString().getBytes("UTF-8").length
+                                    + m.getObjet().getBytes("UTF-8").length );
+                        }
+                        int countMails = MailDAO.countMails(currentUser.getIdUser());
+                        bw.write("+OK " + countMails + " " + nbBytes);
+                        bw.flush();
+                    }
+                    else {
+
+                    }
                     break;
                 }
 
                 case "RETR" : {
-                    //TODO : Handle lecture + co BD
+
+                    if(isConnected){
+
+                        Mail mail = MailDAO.getMail(currentUser.getIdUser(), Integer.parseInt(parametres[1]));
+                        if(mail.getObjet() == null){
+                            bw.write("-ERR no such message");
+                            bw.flush();
+                        } else {
+
+                            //TODO : mettre en variable de notre objet Mail
+                            int octets = mail.getCorps().getBytes("UTF-8").length + mail.getDate().toString().getBytes("UTF-8").length
+                                    + mail.getObjet().getBytes("UTF-8").length;
+                            bw.write("+OK "+ octets +" octets\r\n");
+                            bw.write("----\r\n");
+                            bw.write("From: " + mail.getRefUserSrc() + "\r\n");
+                            bw.write("To: " + mail.getRefUserDst() + "\r\n");
+                            bw.write("Subject: " + mail.getObjet() + "\r\n");
+                            bw.write("Date: " + mail.getDate() + "\r\n");
+                            bw.write("Message-ID: <" + mail.getIdMail() + "@" + InetAddress.getLocalHost().getHostAddress()+">\r\n");
+                            bw.write("\r\n");
+                            bw.write(mail.getCorps());
+                            bw.write("\r\n");
+                            bw.write("----");
+                            bw.flush();
+                        }
+                    }
+
                     break;
                 }
 
@@ -101,7 +172,17 @@ public class CommunicationPOP3 implements Runnable {
                 }
 
                 case "QUIT" : {
-                    //TODO : Handle close
+
+                    bw.write("+OK dewey POP3 server signing off");
+                    bw.flush();
+
+                    try{
+                        bw.close();
+                        bis.close();
+                    } catch (IOException e){
+                        System.out.println(e.getMessage());
+                    }
+
                     break;
                 }
 
@@ -116,16 +197,44 @@ public class CommunicationPOP3 implements Runnable {
         return true;
     }
 
+    public static String createTimestamp(){
+        String timestamp="";
+        try {
+            timestamp="<"+System.currentTimeMillis()+"@"+ InetAddress.getLocalHost().getHostAddress()+">";
+        } catch (Exception e) {
+            System.out.println("ERROR : create timestamp");
+        }
+        return timestamp;
+    }
 
     @Override
     public void run() {
         try {
+            boolean firstMsg = true;
             while(true) {
-                br = new BufferedReader(new InputStreamReader(sComm.getInputStream(), StandardCharsets.ISO_8859_1));
+                bis = new BufferedInputStream(sComm.getInputStream());
                 bw = new BufferedWriter(new OutputStreamWriter(sComm.getOutputStream()));
-                response(br);
+                if(firstMsg){
+                    //System.out.println("test");
+                    timestamp = createTimestamp();
+                    String srvRdy = "+OK POP3 server ready " + timestamp;
+                    bw.write(srvRdy);
+
+                    bw.flush();
+                    firstMsg = false;
+                }
+
+                response();
             }
         } catch (IOException e) {
+
+            try {
+                bis.close();
+                bw.close();
+            } catch (IOException d) {
+                System.out.println(d.getMessage());
+            }
+
             System.out.println(e.getMessage());
         }
     }
