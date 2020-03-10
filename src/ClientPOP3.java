@@ -10,7 +10,7 @@ import java.security.MessageDigest;
 public class ClientPOP3 {
 
     private BufferedWriter bw;
-    private BufferedReader br;
+    private BufferedInputStream br;
     private Socket sClient;
     private String timestamp;
 
@@ -22,7 +22,7 @@ public class ClientPOP3 {
             sClient = new Socket(InetAddress.getByName(nomServ), port);
             System.out.println("Connexion réussie sur le serveur : " + nomServ);
             bw = new BufferedWriter(new OutputStreamWriter(sClient.getOutputStream(), StandardCharsets.UTF_8));
-            br = new BufferedReader(new InputStreamReader(sClient.getInputStream()));
+            br = new BufferedInputStream(sClient.getInputStream());
         }catch (Exception e){
             System.out.println("ERROR : connection failed");
         }
@@ -42,7 +42,9 @@ public class ClientPOP3 {
             byte[] bytesOfMessage = (this.timestamp+password).getBytes("UTF-8");
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] digest = md.digest(bytesOfMessage);
-            bw.write("APOP "+username+" "+digest);
+            System.out.println(digest);
+            System.out.println("C : APOP "+username+" "+password);
+            bw.write("APOP "+username+" "+password);
             bw.flush();
         }catch (Exception e) {
             System.out.println("ERROR : send apop");
@@ -53,7 +55,7 @@ public class ClientPOP3 {
 
     public boolean sendStat(){
         try{
-
+            System.out.println("C : STAT");
             bw.write("STAT");
             bw.flush();
         }catch (Exception e) {
@@ -63,62 +65,58 @@ public class ClientPOP3 {
         return true;
     }
 
-    public boolean readResponse(){
+    public int readResponse(){
+        //return 1 si ok
+        //return -1 si pb connexion
+        //return -2 si serveur envoi -ERR
         try {
-            String type = "";
-            ArrayList<String> reponse = new ArrayList<>();
-            String line="";
+            String response = "";
+            int stream;
+            byte[] b = new byte[4096];
+            stream = br.read(b);
+            response = new String(b, 0, stream);
+            System.out.println("S : "+response);
 
-            while((line=br.readLine())!= null){
-                System.out.println(line);
-                reponse.add(line);
                 //cas erreur
-                if(line.contains("-ERR")) {
-                    return false;
+                if(response.contains("-ERR")) {
+                    return -2;
                 }
                 //premier retour connexion
-                if(line.contains("+OK POP3 server ready")) {
-                    setTimestamp(line);
-                    return true;
+                if(response.contains("+OK POP3 server ready")) {
+                    setTimestamp(response);
+                    return 1;
                 }
                 //apop sucessful
-                if(line.contains("+OK maildrop")) {
-                    return true;
+                if(response.contains("+OK maildrop")) {
+                    return 1;
                 }
-                //apop sucessful
-                if(line.contains("+OK dewey POP3 server signing off")) {
-                    return true;
+                //connection sucessful
+                if(response.contains("+OK dewey POP3 server signing off")) {
+                    return 1;
                 }
-                if(!br.ready()){
-                    break;
-                }
-            }
-            return true;
+                return 1;
         } catch (Exception e){
             System.out.println("ERROR : read response");
-            return false;
+            return -1;
         }
     }
 
     public int readResponseStat(){
         try {
-            String type = "";
-            ArrayList<String> reponse = new ArrayList<>();
-            String line="";
+            String response = "";
+            int stream;
+            byte[] b = new byte[4096];
+            stream = br.read(b);
+            response = new String(b, 0, stream);
+            System.out.println("S : "+response);
 
-            while((line=br.readLine())!= null){
-                System.out.println(line);
-                reponse.add(line);
                 //ok
-                if(line.contains("+OK")) {
-                    String[] bloc=line.split(" ");
+                if(response.contains("+OK")) {
+                    String[] bloc=response.split(" ");
                     return Integer.parseInt(bloc[1]);
                 }
 
-                if(!br.ready()){
-                    break;
-                }
-            }
+
             return 0;
         } catch (Exception e){
             System.out.println("ERROR : read response stat");
@@ -129,6 +127,7 @@ public class ClientPOP3 {
     public void doRetr(int n){
         //send
         try{
+            System.out.println("C : RETR "+n);
             bw.write("RETR "+n);
             bw.flush();
         }catch (Exception e) {
@@ -136,26 +135,23 @@ public class ClientPOP3 {
         }
         //read
         try {
-            String type = "";
-            ArrayList<String> reponse = new ArrayList<>();
-            String line="";
+            String response = "";
+            int stream;
+            byte[] b = new byte[4096];
+            stream = br.read(b);
+            response = new String(b, 0, stream);
+            System.out.println("S : "+response);
 
-            while((line=br.readLine())!= null){
-                System.out.println(line);
-                reponse.add(line);
                 //ok
-                if(line.contains("+OK")) {
+                if(response.contains("+OK")) {
 
                 }
                 //erreur
-                if(line.contains("-ERR")) {
+                if(response.contains("-ERR")) {
 
                 }
 
-                if(!br.ready()){
-                    break;
-                }
-            }
+
         } catch (Exception e){
             System.out.println("ERROR : read retr "+n);
         }
@@ -163,6 +159,7 @@ public class ClientPOP3 {
 
     public void sendQuit(){
         try{
+            System.out.println("C : QUIT");
             bw.write("QUIT");
             bw.flush();
         }catch (Exception e) {
@@ -196,28 +193,31 @@ public class ClientPOP3 {
 
     public void getMails(){
         boolean apopFailed=false;
+
         //get timestamp
         readResponse();
-        System.out.println("--CONSULTATION MAILS POP3--");
+        System.out.println("--CONNEXION MAILS POP3--");
         do{
             //connexion APOP
             String username = askForUsername();
             String password = askForPassword();
             sendApop(username, password);
             //si APOP ok démarrer l'échange
-            if (readResponse()) {
+            int response=readResponse();
+            if (response==1) {
                 sendStat();
                 int nbMail = readResponseStat();
                 for (int i = 1; nbMail > 0 && i <= nbMail; i++) {
                     doRetr(i);
                 }
             }
-            else{
+            else if(response==-2){
                 apopFailed=askForRetryApop();
+                System.out.println("apopFailed="+apopFailed);
             }
         }while(apopFailed);
         sendQuit();
-        //read inutile mais bloquant
+        //read final mais on ferme quoi qu'il arrive
         readResponse();
         try {
             br.close();
