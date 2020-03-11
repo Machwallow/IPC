@@ -123,8 +123,7 @@ public class CommunicationPOP3 implements Runnable {
                         int nbBytes = 0;
 
                         for(Mail m : mails){
-                            nbBytes += (m.getCorps().getBytes("UTF-8").length + m.getDate().toString().getBytes("UTF-8").length
-                                    + m.getObjet().getBytes("UTF-8").length );
+                            nbBytes += m.getNbOctets();
                         }
                         int countMails = MailDAO.countMails(currentUser.getIdUser());
                         bw.write("+OK " + countMails + " " + nbBytes);
@@ -147,9 +146,7 @@ public class CommunicationPOP3 implements Runnable {
                         } else {
 
                             //TODO : mettre en variable de notre objet Mail
-                            int octets = mail.getCorps().getBytes("UTF-8").length + mail.getDate().toString().getBytes("UTF-8").length
-                                    + mail.getObjet().getBytes("UTF-8").length;
-                            bw.write("+OK "+ octets +" octets\r\n");
+                            bw.write("+OK "+ mail.getNbOctets() +" octets\r\n");
                             bw.write("----\r\n");
                             bw.write("From: " + mail.getRefUserSrc() + "\r\n");
                             bw.write("To: " + mail.getRefUserDst() + "\r\n");
@@ -157,8 +154,10 @@ public class CommunicationPOP3 implements Runnable {
                             bw.write("Date: " + mail.getDate() + "\r\n");
                             bw.write("Message-ID: <" + mail.getIdMail() + "@" + InetAddress.getLocalHost().getHostAddress()+">\r\n");
                             bw.write("\r\n");
-                            bw.write(mail.getCorps());
-                            bw.write("\r\n");
+
+                            for(int i = 0 ; i< mail.getCorps().length(); i += 78)
+                                bw.write(mail.getCorps().substring(i, Math.min(mail.getCorps().length(), i + 78)) + "\r\n");
+
                             bw.write("----");
                             bw.flush();
                         }
@@ -190,7 +189,7 @@ public class CommunicationPOP3 implements Runnable {
                     // hmm
             }
 
-        }catch (IOException e) {
+        } catch (IOException e) {
             System.out.println(e.getMessage());
         }
 
@@ -214,6 +213,7 @@ public class CommunicationPOP3 implements Runnable {
             while(true) {
                 bis = new BufferedInputStream(sComm.getInputStream());
                 bw = new BufferedWriter(new OutputStreamWriter(sComm.getOutputStream()));
+                //TODO : a modif car si yo se co avec pls comptes depuis la meme socket -> bug, modif du curretn user, ajouter un connected
                 if(firstMsg){
                     //System.out.println("test");
                     timestamp = createTimestamp();
@@ -231,6 +231,7 @@ public class CommunicationPOP3 implements Runnable {
             try {
                 bis.close();
                 bw.close();
+                //ConnexionBD.CloseConnection();
             } catch (IOException d) {
                 System.out.println(d.getMessage());
             }

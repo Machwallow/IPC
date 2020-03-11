@@ -1,5 +1,6 @@
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
 public class MailDAO {
@@ -88,8 +89,10 @@ public class MailDAO {
                 mail.setRefUserDst(rs.getInt(3));
                 mail.setObjet(rs.getString(4));
                 mail.setCorps(rs.getString(5));
-                //TODO : modifier date dans bdd
-                mail.setDate(rs.getDate(6));
+                Timestamp timestamp = rs.getTimestamp(6);
+                mail.setDate(timestamp);
+
+                mail.setNbOctets();
 
                 notEmpty = rs.next();
             }
@@ -101,6 +104,47 @@ public class MailDAO {
 
         return mail;
 
+    }
+
+    public static void prepareDeletingMail(int refUserDst, int numMail){
+        Connection co = ConnexionBD.getInstance();
+
+        try {
+            Mail mail = getMail(refUserDst, numMail);
+            PreparedStatement rechercheMails = co.prepareStatement("UPDATE mail SET isDeleting = 1 WHERE idMail = ?");
+            rechercheMails.setInt(1, mail.getIdMail());
+
+            rechercheMails.executeUpdate();
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void cancelDeletion(){
+        Connection co = ConnexionBD.getInstance();
+
+        try {
+            PreparedStatement rechercheMails = co.prepareStatement("UPDATE mail SET isDeleting = 0");
+
+            rechercheMails.executeUpdate();
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void deleteMails(){
+        Connection co = ConnexionBD.getInstance();
+
+        try {
+            PreparedStatement rechercheMails = co.prepareStatement("DELETE from mail WHERE isDeleting = 1");
+
+            rechercheMails.executeUpdate();
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+        }
     }
 
 }

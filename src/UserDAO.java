@@ -30,7 +30,7 @@ public class UserDAO {
             rs.close();
         } catch (Exception e){
             user.setIdUser(-1);
-            System.out.println("erreur getUser");
+            System.out.println(e.getMessage());
         }
 
         return user;

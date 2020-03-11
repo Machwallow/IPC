@@ -31,4 +31,12 @@ public class ConnexionBD {
         return connect;
     }
 
+    public static void CloseConnection(){
+        try {
+            connect.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

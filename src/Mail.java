@@ -1,3 +1,4 @@
+import java.io.UnsupportedEncodingException;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
@@ -9,6 +10,8 @@ public class Mail {
     private String objet;
     private String corps;
     private String date;
+    private int nbOctets;
+
 
     public Mail(){
 
@@ -63,7 +66,19 @@ public class Mail {
         java.text.SimpleDateFormat sdf =
                 new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        String currentTime = sdf.format(date);
-        this.date = currentTime;
+        this.date = sdf.format(date);
+    }
+
+    public int getNbOctets() {
+        return nbOctets;
+    }
+
+    public void setNbOctets() {
+        try {
+            nbOctets = this.getCorps().getBytes("UTF-8").length + this.getDate().toString().getBytes("UTF-8").length
+                    + this.getObjet().getBytes("UTF-8").length;
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 }
