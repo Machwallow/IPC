@@ -1,7 +1,5 @@
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.concurrent.ExecutionException;
 
 public class MailDAO {
 
@@ -17,17 +15,21 @@ public class MailDAO {
 
             ResultSet rs = rechercheMails.executeQuery();
 
+
             boolean notEmpty = rs.next();
 
             while(notEmpty){
                 Mail mail = new Mail();
 
                 mail.setIdMail(rs.getInt(1));
-                mail.setRefUserSrc(rs.getInt(2));
-                mail.setRefUserDst(rs.getInt(3));
+                mail.setUserSrc(UserDAO.getUserById(rs.getInt(2)));
+                mail.setUserDst(UserDAO.getUserById(rs.getInt(3)));
                 mail.setObjet(rs.getString(4));
                 mail.setCorps(rs.getString(5));
-                mail.setDate(rs.getDate(6));
+
+                Timestamp timestamp = rs.getTimestamp(6);
+                mail.setDate(timestamp);
+                mail.setNbOctets();
 
                 listMails.add(mail);
                 notEmpty = rs.next();
@@ -85,8 +87,8 @@ public class MailDAO {
             while(notEmpty){
 
                 mail.setIdMail(rs.getInt(1));
-                mail.setRefUserSrc(rs.getInt(2));
-                mail.setRefUserDst(rs.getInt(3));
+                mail.setUserSrc(UserDAO.getUserById(rs.getInt(2)));
+                mail.setUserDst(UserDAO.getUserById(rs.getInt(3)));
                 mail.setObjet(rs.getString(4));
                 mail.setCorps(rs.getString(5));
                 Timestamp timestamp = rs.getTimestamp(6);

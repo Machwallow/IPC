@@ -1,8 +1,8 @@
 import java.io.*;
-import java.lang.reflect.Array;
-import java.lang.reflect.Parameter;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
 public class CommunicationPOP3 implements Runnable {
@@ -95,7 +95,8 @@ public class CommunicationPOP3 implements Runnable {
                 case "APOP" : {
 
                     if(!isConnected){
-                        currentUser = UserDAO.getUser(parametres[1], parametres[2]);
+
+                        currentUser = UserDAO.getUser(parametres[1], parametres[2], timestamp);
                         if(currentUser.getLogin() == null){
 
                             bw.write("-ERR wrong login or password");
@@ -144,11 +145,10 @@ public class CommunicationPOP3 implements Runnable {
                             bw.flush();
                         } else {
 
-                            //TODO : mettre en variable de notre objet Mail
                             bw.write("+OK "+ mail.getNbOctets() +" octets\r\n");
                             bw.write("----\r\n");
-                            bw.write("From: " + mail.getRefUserSrc() + "\r\n");
-                            bw.write("To: " + mail.getRefUserDst() + "\r\n");
+                            bw.write("From: " + mail.getUserSrc().getLogin() + "\r\n");
+                            bw.write("To: " + mail.getUserDst().getLogin() + "\r\n");
                             bw.write("Subject: " + mail.getObjet() + "\r\n");
                             bw.write("Date: " + mail.getDate() + "\r\n");
                             bw.write("Message-ID: <" + mail.getIdMail() + "@" + InetAddress.getLocalHost().getHostAddress()+">\r\n");
