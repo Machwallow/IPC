@@ -42,9 +42,10 @@ public class ClientPOP3 {
             byte[] bytesOfMessage = (this.timestamp+password).getBytes("UTF-8");
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] digest = md.digest(bytesOfMessage);
-            System.out.println(digest);
-            System.out.println("C : APOP "+username+" "+password);
-            bw.write("APOP "+username+" "+password);
+            String res =new String(digest,"UTF-8");
+            System.out.println(res);
+            System.out.println("C : APOP "+username+" "+res);
+            bw.write("APOP "+username+" "+res);
             bw.flush();
         }catch (Exception e) {
             System.out.println("ERROR : send apop");
@@ -229,7 +230,8 @@ public class ClientPOP3 {
     }
 
     public static void main(String[] args){
-        ClientPOP3 c = new ClientPOP3("192.168.43.60", 8000);
+        //adresse IP avant : 192.168.43.60
+        ClientPOP3 c = new ClientPOP3("192.168.1.82", 8000);
         c.getMails();
     }
 }

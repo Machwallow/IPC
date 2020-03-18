@@ -1,12 +1,11 @@
 import java.io.UnsupportedEncodingException;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 public class Mail {
 
     private int idMail;
-    private int refUserSrc;
-    private int refUserDst;
+    private User UserSrc;
+    private User UserDst;
     private String objet;
     private String corps;
     private String date;
@@ -25,20 +24,20 @@ public class Mail {
         this.idMail = idMail;
     }
 
-    public int getRefUserSrc() {
-        return refUserSrc;
+    public User getUserSrc() {
+        return UserSrc;
     }
 
-    public void setRefUserSrc(int refUserSrc) {
-        this.refUserSrc = refUserSrc;
+    public void setUserSrc(User userSrc) {
+        this.UserSrc = userSrc;
     }
 
-    public int getRefUserDst() {
-        return refUserDst;
+    public User getUserDst() {
+        return UserDst;
     }
 
-    public void setRefUserDst(int refUserDst) {
-        this.refUserDst = refUserDst;
+    public void setUserDst(User userDst) {
+        this.UserDst = userDst;
     }
 
     public String getObjet() {
