@@ -93,7 +93,6 @@ public class CommunicationPOP3 implements Runnable {
             switch (parametres[0]) {
 
                 case "APOP" : {
-                    //TODO : Handle connection
 
                     if(!isConnected){
                         currentUser = UserDAO.getUser(parametres[1], parametres[2]);
@@ -178,6 +177,7 @@ public class CommunicationPOP3 implements Runnable {
                     try{
                         bw.close();
                         bis.close();
+                        sComm.close();
                     } catch (IOException e){
                         System.out.println(e.getMessage());
                     }
@@ -231,7 +231,7 @@ public class CommunicationPOP3 implements Runnable {
             try {
                 bis.close();
                 bw.close();
-                //ConnexionBD.CloseConnection();
+                sComm.close();
             } catch (IOException d) {
                 System.out.println(d.getMessage());
             }
